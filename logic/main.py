@@ -22,12 +22,13 @@ def get_distinct_values(conn_db, field_name):
 def get_filtered_data(collection, filters):
     return collection.find_one(filters)
 
+connected_db = init_conn()
+
 # details
 @app.route('/details', methods=['POST'])
 def filterdata():
   req = request.json
 
-  connected_db = init_conn()
   coll = connected_db.db.dataset
   final_arr = []
   children, adult = 0, 0
