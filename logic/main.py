@@ -1,14 +1,15 @@
 from flask import Flask, jsonify, request
 from flask_pymongo import PyMongo
 import bson.json_util as json_util
+from flask_cors import CORS
 
-
-print("Starts here")
 app = Flask(__name__)
+cors = CORS(app)
 
 # Configure the MongoDB URI
 app.config['MONGO_URI'] = 'mongodb+srv://assignmentaccess:oPjeRkS9x9yGKaxc@assignment.v8ead4w.mongodb.net/assignment'
 
+# initialize mongo connection
 def init_conn():
   return PyMongo(app)
 
@@ -21,36 +22,34 @@ def get_distinct_values(conn_db, field_name):
 def get_filtered_data(collection, filters):
     return collection.find_one(filters)
 
-
-@app.route('/', methods=['POST'])
+# details
+@app.route('/details', methods=['POST'])
 def filterdata():
   req = request.json
 
   connected_db = init_conn()
   coll = connected_db.db.dataset
-
-  # from db, fetch each individual entry and add to array
-  """
-  filter_design:
-  - tier_id
-  - sum_insured
-  - tenure
-  - age > array(int)
-  """
-
   final_arr = []
+  children, adult = 0, 0
+  req['age'].sort()
 
   for i in range(0, len(req['age'])):
-    # 1. fetch exact value from db
+    age = req['age'][i]
     entity = get_filtered_data(coll, {
       'TierID': req['tierid'],
-      'Age': req['age'][i],
+      'Age': age,
       'SumInsured': req['sum'],
       'Tenure': req['tenure']
     })
 
-    # 2. add to final array
+    if age > 19:
+      adult += 1
+    else:
+      children += 1
+
+    k = len(req['age']) > 1 and age != max(req['age'])
     final_arr.append({
+      'name': f'Adult {adult}' if age > 18 else f'Child {children}',
       'product_code': entity['ProductCode'],
       'tier_id': entity['TierID'],
       'plan_code': entity['PlanCode'],
@@ -59,12 +58,14 @@ def filterdata():
       'sum': entity['SumInsured'],
       'tenure': entity['Tenure'],
       'rate': entity['Rate'],
+      'disc': 50 if k else 0,
+      'final_amt': (entity['Rate'] * 0.5) if k else entity['Rate']
     })
-
-  print(final_arr)
 
   return jsonify({
     "msg": "Successfully stored data set",
     "code": 200,
-    "data": final_arr
+    "data": {
+      "members": final_arr
+    }
   })
