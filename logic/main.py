@@ -63,9 +63,6 @@ def filterdata():
     })
 
   return jsonify({
-    "msg": "Successfully stored data set",
-    "code": 200,
-    "data": {
-      "members": final_arr
-    }
+    "data": final_arr,
+    "amount": sum(elem['final_amt'] for elem in final_arr)
   })
